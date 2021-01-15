@@ -19,18 +19,33 @@ def load_image(name, colorkey=None):
 
 
 if __name__ == '__main__':
-    size = width, height = 400, 600
+    step = 1
+    size = width, height = 600, 400
     screen = pygame.display.set_mode(size)
     FPS = 60
     clock = pygame.time.Clock()
     running = True
-    image = load_image('knight.png', -1)
-    screen.blit(image, (10, 10))
+    image = pygame.transform.scale(load_image('knight.png', -1), (100, 100))
+    all_sprites = pygame.sprite.Group()
+    sprite = pygame.sprite.Sprite(all_sprites)
+    sprite.image = image
+    sprite.rect = image.get_rect()
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    sprite.rect.y -= step
+                elif event.key == pygame.K_DOWN:
+                    sprite.rect.y += step
+                elif event.key == pygame.K_RIGHT:
+                    sprite.rect.x += step
+                elif event.key == pygame.K_LEFT:
+                    sprite.rect.x -= step
+                elif event.key == pygame.K_RETURN:
+                    step += 1
         screen.fill((0, 0, 0))
-        screen.blit(image, (10, 10))
+        all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick()
