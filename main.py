@@ -2,14 +2,25 @@ import pygame
 import sys
 import os
 
-
+pygame.init()
 First = 1
+
+def intro(screen):
+    image = pygame.transform.scale((pygame.image.load('data\intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                return
+        screen.blit(image, (10, 10))
+        pygame.display.flip()
+
 def animation_of_attack():
     if First <= 15:
         sprite.image = pygame.transform.scale(load_image(f'Attack_1\Picture ({First}).png', -1), (100, 200))
         return True
     else:
         return False
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data\Knight\Right_Side\Warrior1', name)
@@ -40,6 +51,7 @@ if __name__ == '__main__':
     sprite = pygame.sprite.Sprite(all_sprites)
     sprite.image = image
     sprite.rect = image.get_rect()
+    intro(screen)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
