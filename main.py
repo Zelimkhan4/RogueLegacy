@@ -5,15 +5,15 @@ import os
 
 First = 1
 def animation_of_attack():
-    if First <= 6:
-        sprite.image = pygame.transform.scale(load_image(f'attack\{First}.png', -1), (100, 100))
+    if First <= 15:
+        sprite.image = pygame.transform.scale(load_image(f'Attack_1\Picture ({First}).png', -1), (100, 200))
         sprite.rect = image.get_rect()
         return True
     else:
         return False
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('data\Knight\Right_Side\Warrior1', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением {fullname} не найден!")
         sys.exit()
@@ -32,11 +32,11 @@ if __name__ == '__main__':
     step = 1
     size = width, height = 600, 400
     screen = pygame.display.set_mode(size)
-    FPS = 
+    FPS = 15
     status = False
     clock = pygame.time.Clock()
     running = True
-    image = pygame.transform.scale(load_image('Woodcutter.png', -1), (100, 200))
+    image = pygame.transform.scale(load_image('Normal.png', -1), (100, 200))
     all_sprites = pygame.sprite.Group()
     sprite = pygame.sprite.Sprite(all_sprites)
     sprite.image = image
@@ -66,6 +66,7 @@ if __name__ == '__main__':
             First += 1
         else:
             First = 1
+            sprite.image = image
         all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
