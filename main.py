@@ -7,6 +7,7 @@ First = 1
 def animation_of_attack():
     if First <= 15:
         sprite.image = pygame.transform.scale(load_image(f'Attack_1\Picture ({First}).png', -1), (100, 200))
+        sprite.rect = image.get_rect()
         return True
     else:
         return False
