@@ -32,7 +32,7 @@ class Character(pygame.sprite.Sprite):
 
     def update(self):
         if pygame.sprite.spritecollideany(self, borders) is None:
-            self.rect.y += 25
+            self.rect.y += 5
 
 
 def intro(screen):
@@ -87,6 +87,9 @@ def loadLevel(filename):
                 Tiles(rowind * height_of_tile, colind * width_of_tile)
 
 if __name__ == '__main__':
+    jump = 25
+    status_of_jumping = 0
+    rel = 0
     step = 1
     size = width, height = 600, 400
     screen = pygame.display.set_mode(size)
@@ -115,15 +118,23 @@ if __name__ == '__main__':
                     hero.rect.x -= step
                 elif event.key == pygame.K_RETURN:
                     step += 1
+                elif event.key == pygame.K_SPACE:
+                    status_of_jumping = True
             else:
                 print(hero.rect.x, hero.rect.y)
 
         screen.fill((255, 255, 255))
         loadLevel('data/maps/level1')
-        hero.image = image
-        all_sprites.draw(screen)
-        all_sprites.update()
-        hero.update()
+        if status_of_jumping:
+            if rel != jump:
+                rel += 5
+                hero.rect.y -= 5
+            else:
+                status_of_jumping = False
+                rel = 0
+        else:
+            all_sprites.update()
         borders.draw(screen)
+        all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
