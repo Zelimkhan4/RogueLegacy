@@ -21,7 +21,6 @@ class Tiles(pygame.sprite.Sprite):
         super().__init__(borders)
         image = pygame.image.load('data/tiles.jpg')
         self.image = image
-        self.image.fill((0, 0, 0))
         self.rect = image.get_rect()
         self.rect.x = col
         self.rect.y = row
@@ -33,7 +32,8 @@ class Character(pygame.sprite.Sprite):
     def update(self):
         if pygame.sprite.spritecollideany(self, borders) is None:
             self.rect.y += 5
-
+        else:
+        	hero.rect.y = borders.sprites()[0].rect.y - 19.75
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data\intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -86,9 +86,22 @@ def loadLevel(filename):
             if col == '@':
                 Tiles(rowind * height_of_tile, colind * width_of_tile)
 
+
+def move(dir):
+	if dir == 'y+':
+		pass
+	elif dir == 'y-':
+		pass
+	elif dir == 'x+':
+		pass
+	elif dir == 'x-':
+		pass
+
 if __name__ == '__main__':
     jump = 25
     status_of_jumping = 0
+    status_of_walking_plus = 0
+    status_of_walking_minus = 0
     rel = 0
     step = 1
     size = width, height = 600, 400
@@ -109,17 +122,25 @@ if __name__ == '__main__':
                 if event.key == pygame.K_UP:
                     if pygame.sprite.spritecollideany(hero, borders) is None:
                         hero.rect.y -= step
+                    else:
+                    	hero.rect.y = borders.sprites()[0].rect.y - 10
                 elif event.key == pygame.K_DOWN:
                     if pygame.sprite.spritecollideany(hero, borders) is None:
                         hero.rect.y += step
-                elif event.key == pygame.K_RIGHT:
-                    hero.rect.x += step
+                    else:
+                    	hero.rect.y = borders.sprites()[0].rect.y - 10
                 elif event.key == pygame.K_LEFT:
-                    hero.rect.x -= step
+                	status_of_walking_minus = True
+                elif event.key == pygame.K_RIGHT:
+                	status_of_walking_plus = True
                 elif event.key == pygame.K_RETURN:
                     step += 1
                 elif event.key == pygame.K_SPACE:
                     status_of_jumping = True
+            if event.type == pygame.KEYUP:
+            	if event.key in (pygame.K_RIGHT, pygame.K_LEFT):
+            		status_of_walking_minus = False
+            		status_of_walking_plus = False
             else:
                 print(hero.rect.x, hero.rect.y)
 
@@ -132,9 +153,14 @@ if __name__ == '__main__':
             else:
                 status_of_jumping = False
                 rel = 0
-        else:
-            all_sprites.update()
+        if pygame.sprite.spritecollideany(hero, borders) is None:
+	        if status_of_walking_plus:
+	        	hero.rect.x += 15
+	        elif status_of_walking_minus:
+	        	hero.rect.x -= 15
         borders.draw(screen)
+        all_sprites.update()
+        hero.update()
         all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
