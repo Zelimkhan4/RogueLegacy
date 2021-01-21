@@ -5,6 +5,9 @@ import os
 pygame.init()
 borders = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
+GRAVITY = 9.8
+VelocityX = 25
+VelocityY = 25
 
 class Border(pygame.sprite.Sprite):
     def __init__(self, x1, y1, x2, y2):
@@ -30,10 +33,12 @@ class Character(pygame.sprite.Sprite):
         super().__init__(all_sprites)
 
     def update(self):
+        self.rect.y += 5
         if pygame.sprite.spritecollideany(self, borders) is None:
             self.rect.y += 5
         else:
-        	hero.rect.y = borders.sprites()[0].rect.y - 19.75
+        	hero.rect.y = borders.sprites()[0].rect.y - 100
+
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data\intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -120,10 +125,7 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    if pygame.sprite.spritecollideany(hero, borders) is None:
-                        hero.rect.y -= step
-                    else:
-                    	hero.rect.y = borders.sprites()[0].rect.y - 10
+                    hero.rect.y -= 100
                 elif event.key == pygame.K_DOWN:
                     if pygame.sprite.spritecollideany(hero, borders) is None:
                         hero.rect.y += step
@@ -149,7 +151,7 @@ if __name__ == '__main__':
         if status_of_jumping:
             if rel != jump:
                 rel += 5
-                hero.rect.y -= 5
+                hero.rect.y -= 50
             else:
                 status_of_jumping = False
                 rel = 0
