@@ -31,13 +31,18 @@ class Tiles(pygame.sprite.Sprite):
 class Character(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(all_sprites)
+        self.jump = 2
 
     def update(self):
-        self.rect.y += 5
+        self.rect.y += 10
         if pygame.sprite.spritecollideany(self, borders) is None:
-            self.rect.y += 5
+            self.rect.y += 10
         else:
-        	hero.rect.y = borders.sprites()[0].rect.y - 100
+        	hero.rect.y = borders.sprites()[0].rect.y - 200
+
+    def jumping(self):
+        
+
 
 
 def intro(screen):
@@ -109,12 +114,12 @@ if __name__ == '__main__':
     status_of_walking_minus = 0
     rel = 0
     step = 1
-    size = width, height = 600, 400
+    size = width, height = 1920, 1200
     screen = pygame.display.set_mode(size)
     FPS = 20
     clock = pygame.time.Clock()
     running = True
-    image = pygame.transform.scale(load_image1('fire.jpg', -1), (100, 100))
+    image = pygame.transform.scale(load_image1('Characters\Warrior\Base.png'), (200, 200))
     hero = Character()
     hero.image = image
     hero.rect = image.get_rect()
