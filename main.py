@@ -18,28 +18,39 @@ class Tiles(pygame.sprite.Sprite):
         self.rect.y = row
 
 
+
 class Character(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(heros)
         self.onGround = False
+        self.onWall = False
         
     def update(self, new_pos):
         border = pygame.sprite.spritecollideany(self, borders) 
         if border:
-            self.onGround = True
+            print(border)
+            if border.rect.y <= self.rect.y + self.rect.height and border.rect.x >= self.rect.x + self.rect.width:
+                new_pos.y = self.rect.y
+                new_pos.x = self.rect.x
+                self.onGround = True
+                self.onWall = True
+                print('onground and onwall')
+            elif border.rect.y <= self.rect.y + self.rect.height:
+                new_pos.y = self.rect.y
+                self.onGround = True
+                print('onground')
+            elif border.rect.x >= self.rect.x + self.rect.width:
+                new_pos.x = self.rect.x
+                self.onWall= True
+                print('onwall')
         else:
             self.onGround = False
-        if not self.onGround:
-            new_pos.y += GRAVITY
-        else:
-            self.rect.y = border.rect.y - self.rect.height
-
-        old_pos = self.rect
+            self.onWall = False
         self.rect = new_pos
 
 
 def intro(screen):
-    image = pygame.transform.scale((pygame.image.load('data\intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
+    image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -75,7 +86,6 @@ def loadLevel(filename):
             if col == '@':
                 Tiles(rowind * height_of_tile, colind * width_of_tile)
 
-
 if __name__ == '__main__':
     step = 20
     size = width, height = 1366, 768
@@ -83,38 +93,35 @@ if __name__ == '__main__':
     FPS = 20
     clock = pygame.time.Clock()
     running = True
-    image = pygame.transform.scale(load_image('Characters\Warrior\Base.png'), (200, 200))
+    image = pygame.transform.scale(load_image('Characters/Warrior/Base.png'), (200, 200))
     hero = Character()
     hero.image = image
     hero.rect = image.get_rect()
     new_pos = hero.rect
     intro(screen)
-    print(id(hero.image.get_rect()) == id(new_pos))
     while running:
         new_pos = hero.rect
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
+                if event.key == pygame.K_DOWN:
                     if not hero.onGround:
-                        new_pos.y -= step
-                elif event.key == pygame.K_DOWN:
-                    if not hero.onGround:
-                        new_pos.y += step
+                        new_pos.y += step                    
                 elif event.key == pygame.K_LEFT:
-                	new_pos.x -= step
+                    if not hero.onWall:
+                        new_pos.x -= step
                 elif event.key == pygame.K_RIGHT:
-                	new_pos.x += step
+                    if not hero.onWall:
+                        new_pos.x += step
                 elif event.key == pygame.K_RETURN:
                     step += 1
-
 
         screen.fill((0, 0, 0))
         loadLevel('data/maps/level1')
         borders.draw(screen)
-
-
+        if not hero.onGround:
+            new_pos.y += step
         all_sprites.update()
         all_sprites.draw(screen)
 
