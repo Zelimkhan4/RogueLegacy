@@ -6,18 +6,7 @@ pygame.init()
 borders = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 GRAVITY = 9.8
-VelocityX = 25
-VelocityY = 25
-
-class Border(pygame.sprite.Sprite):
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(all_sprites)
-        if x1 == x2: # Вертикальная стенка
-            self.image = pygame.Surface([1, y2 - y1])
-            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
-        else:
-            self.image = pygame.Surface([x2 - x1, 1])
-            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
+heros = pygame.sprite.Group()
 
 class Tiles(pygame.sprite.Sprite):
     def __init__(self, row, col):
@@ -28,21 +17,25 @@ class Tiles(pygame.sprite.Sprite):
         self.rect.x = col
         self.rect.y = row
 
+
 class Character(pygame.sprite.Sprite):
     def __init__(self):
-        super().__init__(all_sprites)
-        self.jump = 2
-
-    def update(self):
-        self.rect.y += 10
-        if pygame.sprite.spritecollideany(self, borders) is None:
-            self.rect.y += 10
-        else:
-        	hero.rect.y = borders.sprites()[0].rect.y - 200
-
-    def jumping(self):
+        super().__init__(heros)
+        self.onGround = False
         
+    def update(self, new_pos):
+        border = pygame.sprite.spritecollideany(self, borders) 
+        if border:
+            self.onGround = True
+        else:
+            self.onGround = False
+        if not self.onGround:
+            new_pos.y += GRAVITY
+        else:
+            self.rect.y = border.rect.y - self.rect.height
 
+        old_pos = self.rect
+        self.rect = new_pos
 
 
 def intro(screen):
@@ -51,26 +44,12 @@ def intro(screen):
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 return
+        screen.fill((0, 0, 0))
         screen.blit(image, (10, 10))
         pygame.display.flip()
 
+
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data\Knight\Right_Side\Warrior1', name)
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением {fullname} не найден!")
-        sys.exit()
-    image = pygame.image.load(fullname)
-    if colorkey is not None:
-        image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
-
-
-def load_image1(name, colorkey=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением {fullname} не найден!")
@@ -97,77 +76,50 @@ def loadLevel(filename):
                 Tiles(rowind * height_of_tile, colind * width_of_tile)
 
 
-def move(dir):
-	if dir == 'y+':
-		pass
-	elif dir == 'y-':
-		pass
-	elif dir == 'x+':
-		pass
-	elif dir == 'x-':
-		pass
-
 if __name__ == '__main__':
-    jump = 25
-    status_of_jumping = 0
-    status_of_walking_plus = 0
-    status_of_walking_minus = 0
-    rel = 0
-    step = 1
-    size = width, height = 1920, 1200
+    step = 20
+    size = width, height = 1366, 768
     screen = pygame.display.set_mode(size)
     FPS = 20
     clock = pygame.time.Clock()
     running = True
-    image = pygame.transform.scale(load_image1('Characters\Warrior\Base.png'), (200, 200))
+    image = pygame.transform.scale(load_image('Characters\Warrior\Base.png'), (200, 200))
     hero = Character()
     hero.image = image
     hero.rect = image.get_rect()
+    new_pos = hero.rect
     intro(screen)
+    print(id(hero.image.get_rect()) == id(new_pos))
     while running:
+        new_pos = hero.rect
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    hero.rect.y -= 100
+                    if not hero.onGround:
+                        new_pos.y -= step
                 elif event.key == pygame.K_DOWN:
-                    if pygame.sprite.spritecollideany(hero, borders) is None:
-                        hero.rect.y += step
-                    else:
-                    	hero.rect.y = borders.sprites()[0].rect.y - 10
+                    if not hero.onGround:
+                        new_pos.y += step
                 elif event.key == pygame.K_LEFT:
-                	status_of_walking_minus = True
+                	new_pos.x -= step
                 elif event.key == pygame.K_RIGHT:
-                	status_of_walking_plus = True
+                	new_pos.x += step
                 elif event.key == pygame.K_RETURN:
                     step += 1
-                elif event.key == pygame.K_SPACE:
-                    status_of_jumping = True
-            if event.type == pygame.KEYUP:
-            	if event.key in (pygame.K_RIGHT, pygame.K_LEFT):
-            		status_of_walking_minus = False
-            		status_of_walking_plus = False
-            else:
-                print(hero.rect.x, hero.rect.y)
 
-        screen.fill((255, 255, 255))
+
+        screen.fill((0, 0, 0))
         loadLevel('data/maps/level1')
-        if status_of_jumping:
-            if rel != jump:
-                rel += 5
-                hero.rect.y -= 50
-            else:
-                status_of_jumping = False
-                rel = 0
-        if pygame.sprite.spritecollideany(hero, borders) is None:
-	        if status_of_walking_plus:
-	        	hero.rect.x += 15
-	        elif status_of_walking_minus:
-	        	hero.rect.x -= 15
         borders.draw(screen)
+
+
         all_sprites.update()
-        hero.update()
         all_sprites.draw(screen)
+
+        
+        heros.update(new_pos)
+        heros.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
