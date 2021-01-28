@@ -26,26 +26,29 @@ class Character(pygame.sprite.Sprite):
         self.onWall = False
         
     def update(self, new_pos):
-        border = pygame.sprite.spritecollideany(self, borders) 
-        if border:
-            print(border)
-            if border.rect.y <= self.rect.y + self.rect.height and border.rect.x >= self.rect.x + self.rect.width:
-                new_pos.y = self.rect.y
-                new_pos.x = self.rect.x
-                self.onGround = True
-                self.onWall = True
-                print('onground and onwall')
-            elif border.rect.y <= self.rect.y + self.rect.height:
-                new_pos.y = self.rect.y
-                self.onGround = True
-                print('onground')
-            elif border.rect.x >= self.rect.x + self.rect.width:
-                new_pos.x = self.rect.x
-                self.onWall= True
-                print('onwall')
-        else:
-            self.onGround = False
-            self.onWall = False
+        old_pos = self.rect.copy()
+        borderes = pygame.sprite.spritecollide(self, borders, False)
+        dir_horizontal = None
+        if borderes:
+            print(new_pos.x, ' ', old_pos.x)
+            if new_pos.y - old_pos.y > 0:
+                dir_horizontal = 'right'
+            if new_pos.y - old_pos.y < 0:
+                dir_horizontal = 'left'
+            for border in borderes:
+                if border.rect.y <= self.rect.y + self.rect.height:
+                    new_pos.y = old_pos.y
+                    print('ground')
+                if border.rect.y + border.rect.height >= self.rect.y and\
+                   border.rect.y + border.rect.height <= self.rect.y + self.rect.height:
+                    if new_pos.x - old_pos.x > 0:
+                        if dir == 'right':
+                            new_pos.x = old_pos.x
+                    elif new_pos.x - old_pos.x < 0:
+                        if dir == 'left':
+                            new_pos.x = old_pos.x
+
+                    print('wall')
         self.rect = new_pos
 
 
@@ -53,6 +56,8 @@ def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
     while True:
         for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
             if event.type == pygame.KEYDOWN:
                 return
         screen.fill((0, 0, 0))
@@ -88,7 +93,7 @@ def loadLevel(filename):
 
 if __name__ == '__main__':
     step = 20
-    size = width, height = 1366, 768
+    size = width, height = 1000, 600
     screen = pygame.display.set_mode(size)
     FPS = 20
     clock = pygame.time.Clock()
@@ -100,11 +105,13 @@ if __name__ == '__main__':
     new_pos = hero.rect
     intro(screen)
     while running:
-        new_pos = hero.rect
+        new_pos = hero.rect.copy()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    new_pos.y -= 100
                 if event.key == pygame.K_DOWN:
                     if not hero.onGround:
                         new_pos.y += step                    
@@ -114,10 +121,14 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_RIGHT:
                     if not hero.onWall:
                         new_pos.x += step
+                elif event.key == pygame.K_SPACE:
+                    copy = new_pos.copy()
+                    copy.y = new_pos.y - 100
+                    hero.rect = copy.y
                 elif event.key == pygame.K_RETURN:
                     step += 1
-
         screen.fill((0, 0, 0))
+        borders.empty()
         loadLevel('data/maps/level1')
         borders.draw(screen)
         if not hero.onGround:
