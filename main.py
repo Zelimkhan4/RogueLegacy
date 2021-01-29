@@ -2,10 +2,14 @@ import pygame
 import sys
 import os
 
+class Borders(pygame.sprite.Group):
+    def repaint(self):
+        for sprite in self.sprites():
+            sprite.image.fill((255, 255, 255))
 pygame.init()
-borders = pygame.sprite.Group()
+borders = Borders()
 all_sprites = pygame.sprite.Group()
-GRAVITY = 9.8
+GRAVITY = 10
 heros = pygame.sprite.Group()
 
 class Tiles(pygame.sprite.Sprite):
@@ -16,8 +20,16 @@ class Tiles(pygame.sprite.Sprite):
         self.rect = image.get_rect()
         self.rect.x = col
         self.rect.y = row
+        self.image.fill((0, 0, 0))
 
+    def repaint(self):
+        self.image.fill((0, 0, 0))
 
+class Controller:
+    def __init__(self, sprite):
+        self.sprite = sprite
+        self.velocity_x = 10
+        self.velocity_Y = GRAVITY
 
 class Character(pygame.sprite.Sprite):
     def __init__(self):
@@ -27,30 +39,28 @@ class Character(pygame.sprite.Sprite):
         
     def update(self, new_pos):
         old_pos = self.rect.copy()
+        self.rect = new_pos
         borderes = pygame.sprite.spritecollide(self, borders, False)
         dir_horizontal = None
+        self.onGround = False
+
         if borderes:
-            print(new_pos.x, ' ', old_pos.x)
             if new_pos.y - old_pos.y > 0:
                 dir_horizontal = 'right'
             if new_pos.y - old_pos.y < 0:
                 dir_horizontal = 'left'
             for border in borderes:
-                if border.rect.y <= self.rect.y + self.rect.height:
-                    new_pos.y = old_pos.y
-                    print('ground')
-                if border.rect.y + border.rect.height >= self.rect.y and\
-                   border.rect.y + border.rect.height <= self.rect.y + self.rect.height:
-                    if new_pos.x - old_pos.x > 0:
-                        if dir == 'right':
-                            new_pos.x = old_pos.x
-                    elif new_pos.x - old_pos.x < 0:
-                        if dir == 'left':
-                            new_pos.x = old_pos.x
-
-                    print('wall')
-        self.rect = new_pos
-
+                if border.rect.y <= new_pos.y + new_pos.height + 10 and \
+                    border.rect.x < (self.rect.x + self.rect.width) // 2 < border.rect.x + border.rect.width:
+                    border.image.fill((0, 255, 0))
+                    print('пол')
+                    self.rect.y = border.rect.y - self.rect.height + 1
+                    self.onGround = True
+                else:
+                    self.rect.x = old_pos.x
+                    border.image.fill((255, 0, 0))
+                    print('стена')
+            print('КОНЕЦ')
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -95,7 +105,7 @@ if __name__ == '__main__':
     step = 20
     size = width, height = 1000, 600
     screen = pygame.display.set_mode(size)
-    FPS = 20
+    FPS = 30
     clock = pygame.time.Clock()
     running = True
     image = pygame.transform.scale(load_image('Characters/Warrior/Base.png'), (200, 200))
@@ -104,6 +114,7 @@ if __name__ == '__main__':
     hero.rect = image.get_rect()
     new_pos = hero.rect
     intro(screen)
+    loadLevel('data/maps/level1')
     while running:
         new_pos = hero.rect.copy()
         for event in pygame.event.get():
@@ -128,16 +139,17 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_RETURN:
                     step += 1
         screen.fill((0, 0, 0))
-        borders.empty()
-        loadLevel('data/maps/level1')
+
         borders.draw(screen)
+        borders.update()
         if not hero.onGround:
-            new_pos.y += step
+            new_pos.y += GRAVITY
         all_sprites.update()
         all_sprites.draw(screen)
 
-        
+        borders.repaint()
         heros.update(new_pos)
         heros.draw(screen)
+
         pygame.display.flip()
         clock.tick(FPS)
