@@ -41,7 +41,6 @@ class Character(pygame.sprite.Sprite):
         old_pos = self.rect.copy()
         self.rect = new_pos
         borderes = pygame.sprite.spritecollide(self, borders, False)
-        dir_horizontal = None
         self.onGround = False
 
         if borderes:
@@ -49,18 +48,24 @@ class Character(pygame.sprite.Sprite):
                 dir_horizontal = 'right'
             if new_pos.y - old_pos.y < 0:
                 dir_horizontal = 'left'
+            ground_y = 0
             for border in borderes:
-                if border.rect.y <= new_pos.y + new_pos.height + 10 and \
-                    border.rect.x < (self.rect.x + self.rect.width) // 2 < border.rect.x + border.rect.width:
+                if border.rect.y <= self.rect.y + self.rect.height and\
+                        self.rect.x + self.rect.width // 2 in range(border.rect.x, border.rect.x + border.rect.width):
                     border.image.fill((0, 255, 0))
-                    print('пол')
+                    #print('пол')
                     self.rect.y = border.rect.y - self.rect.height + 1
                     self.onGround = True
-                else:
+                    ground_y = border.rect.y
+                if not border.rect.y <= self.rect.y + self.rect.height and\
+                         ground_y != self.rect.y:
                     self.rect.x = old_pos.x
+                    self.rect.y = border.rect.y - self.rect.height + 1
                     border.image.fill((255, 0, 0))
-                    print('стена')
-            print('КОНЕЦ')
+                    #print('стена')
+                else:
+                    border.image.fill((0, 255, 0))
+                    self.rect.y = border.rect.y - self.rect.height + 1
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -138,6 +143,12 @@ if __name__ == '__main__':
                     hero.rect = copy.y
                 elif event.key == pygame.K_RETURN:
                     step += 1
+                    box = pygame.Surface((200, 200))
+                    hero.image = box
+                    hero.image.fill((0, 0, 255))
+                    hero.rect.width, hero.rect.height = box.get_rect().width, box.get_rect().height
+                elif event.key == pygame.K_BACKSPACE:
+                    hero.image = image
         screen.fill((0, 0, 0))
 
         borders.draw(screen)
