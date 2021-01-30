@@ -49,3 +49,4 @@ if __name__ == '__main__':
         all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick()
+print(4)
