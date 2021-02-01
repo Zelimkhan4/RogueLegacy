@@ -17,7 +17,7 @@ heros = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
+    fullname = 'data\\' + name
     if not os.path.isfile(fullname):
         print(f"Файл с изображением {fullname} не найден!")
         sys.exit()
@@ -75,31 +75,40 @@ class Character(pygame.sprite.Sprite):
         super().__init__(heros)
         self.onGround = False
         self.onWall = False
-        
-    def update(self, new_pos):
-        old_pos = self.rect.copy()
-        self.rect = new_pos
-        borderes = pygame.sprite.spritecollide(self, borders, False)
-        self.onGround = False
+        self.step = 20
 
-        if borderes:
-            if new_pos.y - old_pos.y > 0:
-                dir_horizontal = 'right'
-            if new_pos.y - old_pos.y < 0:
-                dir_horizontal = 'left'
+
+    def move(self, direction):
+        copy = self.rect.copy()
+        if direction == 'right':
+            self.rect.x += self.step
+        elif direction == 'left':
+            self.rect.x -= step
+        elif direction == 'up':
+            self.rect.y -= step
+        else:
+            self.rect.y += step
+        self.checkCollision(copy)
+
+
+    def checkCollision(self, old_pos):
+        border_list = pygame.sprite.spritecollide(self, borders, False)
+        self.onGround = False
+        if border_list:
             ground_y = 0
-            for border in borderes:
-                if border.rect.y <= self.rect.y + self.rect.height and\
-                        self.rect.x + self.rect.width // 2 in range(border.rect.x, border.rect.x + border.rect.width):
-                    self.rect.y = border.rect.y - self.rect.height + 1
+            for border in border_list:
+                if border.rect.y <= self.rect.y + self.rect.height and \
+                        self.rect.x + self.rect.width // 2 in range(border.rect.x,
+                                                                    border.rect.x + border.rect.width):
+                    self.rect.y = old_pos.y
                     self.onGround = True
                     ground_y = border.rect.y
-                if not border.rect.y <= self.rect.y + self.rect.height and\
-                         ground_y != self.rect.y:
-                    self.rect.x = old_pos.x
-                    self.rect.y = border.rect.y - self.rect.height + 1
+                if not border.rect.y <= self.rect.y + self.rect.height and \
+                        ground_y != self.rect.y:
+                    self.rect.y = old_pos.y
                 else:
-                    self.rect.y = border.rect.y - self.rect.height + 1
+                    self.rect.x = old_pos.x
+
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -135,8 +144,13 @@ def loadLevel(filename):
                 GrassLeftSide(rowind * height_of_tile, colind * width_of_tile, width_of_tile, height_of_tile)
 
 if __name__ == '__main__':
+
+    directionToRight = False
+    directionToLeft = False
+
+
     step = 20
-    size = width, height = 1920, 1080
+    size = width, height = 1000, 800
     screen = pygame.display.set_mode(size)
     FPS = 30
     clock = pygame.time.Clock()
@@ -155,20 +169,20 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    new_pos.y -= 100
-                if event.key == pygame.K_DOWN:
+                    if hero.onGround:
+                        hero.rect.y -= 100
+                        hero.onGround =  False
+                elif event.key == pygame.K_DOWN:
                     if not hero.onGround:
-                        new_pos.y += step                    
+                        hero.move('down')
                 elif event.key == pygame.K_LEFT:
                     if not hero.onWall:
-                        new_pos.x -= step
+                        directionToLeft = True
                 elif event.key == pygame.K_RIGHT:
                     if not hero.onWall:
-                        new_pos.x += step
+                        directionToRight = True
                 elif event.key == pygame.K_SPACE:
-                    copy = new_pos.copy()
-                    copy.y = new_pos.y - 100
-                    hero.rect = copy.y
+                    print('пробел')
                 elif event.key == pygame.K_RETURN:
                     step += 1
                     box = pygame.Surface((200, 200))
@@ -177,12 +191,23 @@ if __name__ == '__main__':
                     hero.rect.width, hero.rect.height = box.get_rect().width, box.get_rect().height
                 elif event.key == pygame.K_BACKSPACE:
                     hero.image = image
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    if not hero.onWall:
+                        directionToLeft = False
+                elif event.key == pygame.K_RIGHT:
+                    if not hero.onWall:
+                        directionToRight = False
         screen.fill((0, 0, 0))
-        screen.blit(pygame.transform.scale(load_image('Tiles/Background/Background.png'), (screen.get_width(), screen.get_height())), (0, 0))
+        screen.blit(pygame.transform.scale(load_image('back.jpg'), (screen.get_width(), screen.get_height())), (0, 0))
         borders.draw(screen)
         borders.update()
         if not hero.onGround:
-            new_pos.y += GRAVITY
+            hero.move('down')
+        if directionToRight:
+            hero.move('right')
+        if directionToLeft:
+            hero.move('left')
         all_sprites.update()
         all_sprites.draw(screen)
 
