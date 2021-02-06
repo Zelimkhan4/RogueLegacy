@@ -176,8 +176,16 @@ class Character(pygame.sprite.Sprite):
             elif self.is_attack:
                 self.cur_state = self.attack_sprites
             if self.one:
+                if self.cur_position == len(self.cur_state) - 1 and self.is_attack:
+                    self.is_attack = False
+                    self.is_idle = True
+                    self.one = True
+                    return
                 self.cur_position = (self.cur_position + 1) % len(self.cur_state)
-                self.image = pygame.transform.scale(self.cur_state[self.cur_position], (75, 100))
+                image = pygame.transform.scale(self.cur_state[self.cur_position], (75, 100))
+                if self.orientation == 'Left':
+                    image = pygame.transform.flip(image, 1, 0)
+                self.image = image
                 self.rect.w = self.image.get_rect().width
                 self.rect.h = self.image.get_rect().height
                 self.one = False
@@ -204,12 +212,13 @@ class Character(pygame.sprite.Sprite):
                     if point in range(border.rect.y, border.rect.y + border.rect.height):
                         self.rect.y = abs(border.rect.y - self.rect.height) + 2
                         self.onGround = True
-                        ground_y = border.rect.y
                         self.is_jump = False
                         break
                 else:
                     self.rect.x = old_pos.x
+                    self.rect.y = old_pos.y
                     self.velocityX = 0
+                    print('Тут')
         else:
             self.onGround = False
             self.cur_state = self.fall_sprites
@@ -235,7 +244,36 @@ def intro(screen):
 
 
 
+class Slime(pygame.sprite.Sprite):
+    def __init__(self, sheet, rows, cols, row, col):
+        super().__init__(all_sprites)
+        self.sheet = sheet
+        self.rows = rows
+        self.cols = cols
+        self.frames = []
+        self.cur_pos = 0
+        self.cur_state = []
+        self.cut_sheets(sheet, rows, cols)
+        self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (100, 100))
+        self.rect = self.image.get_rect()
+        self.rect.x = col + 15
+        self.rect.y = row
+        self.rect.w = self.image.get_rect().w
+        self.rect.h = self.image.get_rect().h
 
+    def cut_sheets(self, sheet, rows, cols):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // cols, sheet.get_height() // rows)
+        for row in range(rows):
+            for col in range(cols):
+                frame_location = (self.rect.w * col, self.rect.h * row)
+                self.frames.append(sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
+
+        self.idle_frames = self.frames[:9]
+        self.cur_state = self.idle_frames
+
+    def update(self):
+        self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
+        self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (width_of_tile, height_of_tile))
 
 def loadLevel(filename):
     with open(filename) as map:
@@ -253,8 +291,9 @@ def loadLevel(filename):
             elif col == '+':
                 Trap(load_image('Tiles\lava_tile4.png'), rowind * height_of_tile, colind * width_of_tile, width_of_tile, height_of_tile)
             elif col == '-':
-                Tile(load_image('bridge.png'), rowind * height_of_tile, width_of_tile * colind)
-
+                Tile(load_image('Tiles\\bridge.png', (-1, -1)), rowind * height_of_tile, width_of_tile * colind)
+            elif col == '%':
+                slime = Slime(load_image('characters\slime-Sheet.png'), 3, 8, rowind * height_of_tile, width_of_tile * colind)
 
 
 
@@ -293,8 +332,6 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_LEFT:
                     if not hero.onWall:
                         directionToLeft = True
-                    if hero.orientation == 'Right':
-                        hero.image = pygame.transform.flip(hero.image, 1, 0)
                         hero.orientation = 'Left'
                     if hero.onGround:
                         hero.is_idle = False
@@ -302,8 +339,6 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_RIGHT:
                     if not hero.onWall:
                         directionToRight = True
-                    if hero.orientation == 'Left':
-                        hero.image = pygame.transform.flip(hero.image, 1, 0)
                         hero.orientation = 'Right'
                     if hero.onGround:
                         hero.is_idle = False
@@ -311,6 +346,9 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_RETURN:
                     hero.is_animated = False
                     hero.repaint()
+                elif event.key == pygame.K_f:
+                    hero.is_idle = False
+                    hero.is_attack = True
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
                     if not hero.onWall:
