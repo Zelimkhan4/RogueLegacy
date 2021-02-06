@@ -127,6 +127,7 @@ class Character(pygame.sprite.Sprite):
 
         self.onGround = False
         self.onWall = False
+
         self.velocityX = 0
         self.velocityY = GRAVITY // FPS
 
@@ -156,12 +157,11 @@ class Character(pygame.sprite.Sprite):
         self.attack_sprites = self.frames[38:60]
         self.run_sprites = self.frames[9:15]
         self.jump_sprites = self.frames[34:40]
-        self.fall_sprites = self.frames[23:25]
+        self.fall_sprites = self.frames[29:33]
 
 
     def update(self):
         if self.hp <= 0:
-
             font = pygame.font.SysFont('Comic Sans', 100)
             text = font.render('You are lose(r)!', False, (255, 0, 0))
             while self.hp <= 0:
@@ -192,6 +192,9 @@ class Character(pygame.sprite.Sprite):
                 self.cur_state = self.attack_sprites
             if self.one:
                 if self.cur_position == len(self.cur_state) - 1 and self.is_attack:
+                    enemy = self.check_enemy()
+                    if enemy:
+                        enemy.get_damage(25)
                     self.is_attack = False
                     self.is_idle = True
                     self.one = True
@@ -242,6 +245,9 @@ class Character(pygame.sprite.Sprite):
 
     def rotate_sprite(self, xbool, ybool):
         self.image = pygame.transform.flip(self.image, xbool, ybool)
+    
+    def check_enemy(self):
+        return pygame.sprite.spritecollideany(self, enemy_group)
 
 def intro(screen):
     image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
@@ -269,18 +275,28 @@ class Slime(pygame.sprite.Sprite):
 
         self.is_attack = False
 
+
+        self.hp = 100
+
         self.velocityX = 2
         self.sheet = sheet
         self.rows = rows
         self.cols = cols
         self.frames = []
+        self.count = 0       
         self.cur_pos = 0
-        self.cur_state = []
+        
+        self.cur_state = None
+        
         self.cut_sheets(sheet, rows, cols)
+        
         self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
+        
         self.rect = self.image.get_rect()
+
         self.rect.x = col
         self.rect.y = row
+        
         self.rect.w = 25
         self.rect.h = 25
 
@@ -295,19 +311,37 @@ class Slime(pygame.sprite.Sprite):
 
         self.idle_frames = self.frames[:9]
         self.attack_frames = self.frames[8:14]
+        self.die_frames = self.frames[16:21]
         self.cur_state = self.idle_frames
 
     def update(self):
-        if abs(self.rect.x - hero.rect.x + hero.rect.w) <= 50 or\
-            abs(self.rect.x + self.rect.w - hero.rect.x) <= 50:
-            self.is_pursuit = False
-            self.is_attack = True
-        if abs(self.rect.x - hero.rect.x) in range(51, 301):
-            self.is_pursuit = True
+        self.count += 1
+        if self.hp <= 0 and not self.cur_state == self.die_frames:
+            self.cur_state = self.die_frames 
+            self.kill()
+        if self.rect.x - hero.rect.x:
+            if self.orientation == 'Left':
+                if abs((self.rect.x + self.rect.w) - hero.rect.x) in range(0, 51):
+                    self.is_attack = True
+                    self.is_pursuit = False
+                elif abs((self.rect.x + self.rect.w) - hero.rect.x) in range(51, 301):
+                    self.is_attack = False
+                    self.is_pursuit = True
+            else:
+                if abs(self.rect.x - (hero.rect.x + hero.rect.y)) in range(0, 51):
+                    self.is_attack = True
+                    self.is_pursuit = False
+                elif abs(self.rect.x - (hero.rect.x + hero.rect.w)) in range(51, 301):
+                    self.is_attack = False
+                    self.is_pursuit = True
+        if self.cur_state == self.die_frames:
+            if self.count == 10:
+                self.count = 0
+                self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
+            else:
+                self.cur_pos % len(self.cur_state)
         else:
-            self.is_pursuit = False
-            self.is_attack = False
-        self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
+            self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
         image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
         image.set_colorkey(image.get_at((0, 0)))
         if self.orientation == 'Right':
@@ -327,8 +361,15 @@ class Slime(pygame.sprite.Sprite):
                 self.cur_state = self.attack_frames
             if self.cur_pos == len(self.cur_state) - 1:
                 hero.hp -= 2
+            
+        if self.cur_pos == len(self.cur_state) - 1 and self.cur_state == self.die_frames:
+            self.kill()
+        
 
 
+    def get_damage(self, damage):
+        self.hp -= damage 
+        self.hp = self.hp if self.hp >= 0 else 0
 
 def loadLevel(filename):
     with open(filename) as map:
