@@ -16,6 +16,7 @@ GRAVITY = 500
 heros = pygame.sprite.Group()
 coordinate_of_back = 0
 trap_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
 
 
 class Trap(pygame.sprite.Sprite):
@@ -120,6 +121,8 @@ class Character(pygame.sprite.Sprite):
         all_sprites.add(self)
         self.orientation = 'Right'
 
+        self.hp = 100
+
         self.is_animated = True
 
         self.onGround = False
@@ -141,6 +144,7 @@ class Character(pygame.sprite.Sprite):
         self.one = True
         self.update()
 
+        self.status = True
 
     def cut_frames(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
@@ -156,6 +160,17 @@ class Character(pygame.sprite.Sprite):
 
 
     def update(self):
+        if self.hp <= 0:
+
+            font = pygame.font.SysFont('Comic Sans', 100)
+            text = font.render('You are lose(r)!', False, (255, 0, 0))
+            while self.hp <= 0:
+                for ev in pygame.event.get():
+                    if ev.type == pygame.KEYDOWN:
+                        self.hp = 100
+                        break
+                screen.blit(text, (100, 100))
+                pygame.display.flip()
         copy = self.rect.copy()
         self.move_horizontal()
         self.move_vertical()
@@ -182,12 +197,12 @@ class Character(pygame.sprite.Sprite):
                     self.one = True
                     return
                 self.cur_position = (self.cur_position + 1) % len(self.cur_state)
-                image = pygame.transform.scale(self.cur_state[self.cur_position], (75, 100))
+                image = pygame.transform.scale(self.cur_state[self.cur_position], (100, 100))
                 if self.orientation == 'Left':
                     image = pygame.transform.flip(image, 1, 0)
                 self.image = image
-                self.rect.w = self.image.get_rect().width
-                self.rect.h = self.image.get_rect().height
+                self.rect.w = 100
+                self.rect.h = 100
                 self.one = False
             self.one = False
         self.one = True
@@ -201,10 +216,8 @@ class Character(pygame.sprite.Sprite):
 
     def checkCollision(self, old_pos):
         if pygame.sprite.spritecollideany(self, trap_group):
-            print("Вы умерли")
-            exit()
+            self.hp -= 1
         border_list = pygame.sprite.spritecollide(self, borders, False)
-        print(len(border_list))
         if border_list:
             ground_y = 0
             for border in border_list:
@@ -247,6 +260,16 @@ def intro(screen):
 class Slime(pygame.sprite.Sprite):
     def __init__(self, sheet, rows, cols, row, col):
         super().__init__(all_sprites)
+
+        enemy_group.add(self)
+
+        self.orientation = 'Left'
+
+        self.is_pursuit = False
+
+        self.is_attack = False
+
+        self.velocityX = 2
         self.sheet = sheet
         self.rows = rows
         self.cols = cols
@@ -254,26 +277,58 @@ class Slime(pygame.sprite.Sprite):
         self.cur_pos = 0
         self.cur_state = []
         self.cut_sheets(sheet, rows, cols)
-        self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (100, 100))
+        self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
         self.rect = self.image.get_rect()
-        self.rect.x = col + 15
+        self.rect.x = col
         self.rect.y = row
-        self.rect.w = self.image.get_rect().w
-        self.rect.h = self.image.get_rect().h
+        self.rect.w = 25
+        self.rect.h = 25
 
     def cut_sheets(self, sheet, rows, cols):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // cols, sheet.get_height() // rows)
         for row in range(rows):
             for col in range(cols):
                 frame_location = (self.rect.w * col, self.rect.h * row)
-                self.frames.append(sheet.subsurface(pygame.Rect(frame_location, self.rect.size)))
+                image = sheet.subsurface(pygame.Rect(frame_location, self.rect.size))
+                image.set_colorkey(image.get_at((0, 0)))
+                self.frames.append(image)
 
         self.idle_frames = self.frames[:9]
+        self.attack_frames = self.frames[8:14]
         self.cur_state = self.idle_frames
 
     def update(self):
+        if abs(self.rect.x - hero.rect.x + hero.rect.w) <= 50 or\
+            abs(self.rect.x + self.rect.w - hero.rect.x) <= 50:
+            self.is_pursuit = False
+            self.is_attack = True
+        if abs(self.rect.x - hero.rect.x) in range(51, 301):
+            self.is_pursuit = True
+        else:
+            self.is_pursuit = False
+            self.is_attack = False
         self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
-        self.image = pygame.transform.scale(self.cur_state[self.cur_pos], (width_of_tile, height_of_tile))
+        image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
+        image.set_colorkey(image.get_at((0, 0)))
+        if self.orientation == 'Right':
+            image = pygame.transform.flip(image, 1, 0)
+        self.image = image
+        if self.is_pursuit:
+            self.is_attack = False
+            self.cur_state = self.idle_frames
+            if self.rect.x < hero.rect.x:
+                self.rect.x += self.velocityX
+                self.orientation = 'Right'
+            elif self.rect.x > hero.rect.x:
+                self.rect.x -= self.velocityX
+                self.orientation = 'Left'
+        elif self.is_attack:
+            if not self.cur_state == self.attack_frames:
+                self.cur_state = self.attack_frames
+            if self.cur_pos == len(self.cur_state) - 1:
+                hero.hp -= 2
+
+
 
 def loadLevel(filename):
     with open(filename) as map:
@@ -294,8 +349,7 @@ def loadLevel(filename):
                 Tile(load_image('Tiles\\bridge.png', (-1, -1)), rowind * height_of_tile, width_of_tile * colind)
             elif col == '%':
                 slime = Slime(load_image('characters\slime-Sheet.png'), 3, 8, rowind * height_of_tile, width_of_tile * colind)
-
-
+    return slime
 
 if __name__ == '__main__':
     coordinate = 0
@@ -314,9 +368,10 @@ if __name__ == '__main__':
     width_of_tile = 50
     height_of_tile = 50
     intro(screen)
-    loadLevel('data/maps/level1')
+    slime = loadLevel('data/maps/level1')
     background = Background(load_image('background.jpg'), screen)
     step = 100
+    length_of_health_bar = 200
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -349,6 +404,11 @@ if __name__ == '__main__':
                 elif event.key == pygame.K_f:
                     hero.is_idle = False
                     hero.is_attack = True
+                elif event.key == pygame.K_e:
+                    hero.hp -= 15
+                elif event.key == pygame.K_a:
+                    slime.image = pygame.Surface((50, 50)).fill((255, 0, 0))
+
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
                     if not hero.onWall:
@@ -375,6 +435,7 @@ if __name__ == '__main__':
             hero.velocityX = (step) / FPS
         if directionToLeft:
             hero.velocityX = -((step) / FPS)
+        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(20, 20, length_of_health_bar * (hero.hp / 100), 20))
 
 
 
