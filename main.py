@@ -250,7 +250,7 @@ class Character(pygame.sprite.Sprite):
         return pygame.sprite.spritecollideany(self, enemy_group)
 
 def intro(screen):
-    image = pygame.transform.scale((pygame.image.load('data/intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
+    image = pygame.transform.scale((pygame.image.load('data\intro.jpg')), (screen.get_width() - 20, screen.get_height() - 20))
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -404,13 +404,13 @@ if __name__ == '__main__':
     FPS = 15
     clock = pygame.time.Clock()
     running = True
-    image = load_image('Tiles\Adventurer-1.3-Sheet.png')
-    hero = Character(image, 8, 12)
     width_of_tile = 50
     height_of_tile = 50
     intro(screen)
     slime = loadLevel('data/maps/level1')
     background = Background(load_image('background.jpg'), screen)
+    image = load_image('Tiles\\adventurer.png')
+    hero = Character(image, 8, 12)
     step = 100
     length_of_health_bar = 200
     while running:
