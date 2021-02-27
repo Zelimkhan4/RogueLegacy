@@ -345,65 +345,46 @@ class Slime(pygame.sprite.Sprite):
             #self.checkCollision(old)
         # Физика для slime
         if not self.onGround:
-            self.rect.y += self.velocityY
-            print('THIS')
+            self.rect.y += self.velocityY   
         
             
         if self.hp <= 0 and not self.cur_state == self.die_frames:
             self.cur_state = self.die_frames 
             self.cur_pos = 0
             self.kill()
-        if self.rect.x - hero.rect.x:
-            if self.orientation == 'Left':
-                if abs((self.rect.x + self.rect.w) - hero.rect.x) in range(0, 51):
-                    self.is_attack = True
-                    self.is_pursuit = False
-                elif abs((self.rect.x + self.rect.w) - hero.rect.x) in range(51, 301):
-                    self.is_attack = False
-                    self.is_pursuit = True
-            else:
-                if abs(self.rect.x - (hero.rect.x + hero.rect.y)) in range(0, 51):
-                    self.is_attack = True
-                    self.is_pursuit = False
-                elif abs(self.rect.x - (hero.rect.x + hero.rect.w)) in range(51, 301):
-                    self.is_attack = False
-                    self.is_pursuit = True
         self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
         image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
         image.set_colorkey(image.get_at((0, 0)))
         if self.orientation == 'Right':
             image = pygame.transform.flip(image, 1, 0)
         self.image = image
+        self.rect.w, self.rect.h = image.get_size()
         old_pos = self.rect.x, self.rect.y
-        if self.is_pursuit:
-            self.is_attack = False
-            self.cur_state = self.idle_frames
-            if self.rect.x < hero.rect.x:
-                self.rect.x += self.velocityX
-                self.orientation = 'Right'
-            elif self.rect.x > hero.rect.x:
-                self.rect.x -= self.velocityX
-                self.orientation = 'Left'
         self.checkCollision((old_pos))
-        elif self.is_attack:
+        enemy = pygame.sprite.spritecollideany(self, heros) 
+        if enemy:
+            self.orientation = 'Right' if self.rect.x < enemy.rect.x else 'Left'
             if not self.cur_state == self.attack_frames:
                 self.cur_state = self.attack_frames
                 self.cur_pos = 0
             if self.cur_pos == len(self.cur_state) - 1:
                 hero.hp -= 2
+        else:
+            self.cur_state = self.idle_frames
         
             
         if self.cur_pos == len(self.cur_state) - 1 and self.cur_state == self.die_frames:
             self.kill()
+        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(self.rect.x, self.rect.y, self.rect.w, self.rect.h), 2)
         
 
     def checkCollision(self, old):
         self.colliders = pygame.sprite.spritecollide(self, borders, False)
         for collider in self.colliders:
-            if self.rect.y + self.rect.height in range(collider.rect.y + collider.rect.h)\
+            if self.rect.y + self.rect.height in range(collider.rect.y, collider.rect.y + collider.rect.h + 1)\
                 and self.rect.x + self.rect.w // 2 in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onGround = True        
-                self.rect.y = collider.rect.y - self.image.get_height() - 5
+                self.rect.y = collider.rect.y - self.rect.h
             elif self.rect.x + self.rect.w in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onWall = True  
                 self.rect.x = old[0]
