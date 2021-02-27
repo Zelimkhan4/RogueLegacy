@@ -139,6 +139,7 @@ class Character(pygame.sprite.Sprite):
         self.is_attack = False
         self.is_jump = False
 
+        self.cur_state = self.idle_sprites
         self.n_jump = 0
         self.jump_step = 10
         self.jump_height = 100
@@ -150,7 +151,6 @@ class Character(pygame.sprite.Sprite):
 
     def cut_frames(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
-        print(self.rect)
         for j in range(rows):
             for i in range(columns):
                 frame_w = self.rect.w * i
@@ -219,7 +219,7 @@ class Character(pygame.sprite.Sprite):
             # self.rect.w, self.rect.h = self.image.get_size()
             if self.orientation == 'Left':
                 self.image = pygame.transform.flip(self.image, 1, 0)
-
+        pygame.draw.rect(screen, (0, 0, 0), self.rect, width=2)
     def move_horizontal(self):
         global coordinate_of_back
         self.rect.x += self.velocityX
@@ -232,11 +232,10 @@ class Character(pygame.sprite.Sprite):
             self.hp -= 1
         border_list = pygame.sprite.spritecollide(self, borders, False)
         if border_list:
-            ground_y = 0
             for border in border_list:
                 for point in range(self.rect.y, self.rect.y + self.rect.height):
                     if point in range(border.rect.y, border.rect.y + border.rect.height):
-                        self.rect.y = abs(border.rect.y - self.rect.height) + 2
+                        self.rect.y = border.rect.y - self.rect.height + 1
                         self.onGround = True
                         self.is_jump = False
                         break
@@ -246,7 +245,7 @@ class Character(pygame.sprite.Sprite):
                     self.velocityX = 0
         else:
             self.onGround = False
-            self.cur_state = self.fall_sprites
+            #self.cur_state = self.fall_sprites
         if old_pos.x - self.rect.x:
             self.clearFlags()
             self.is_run = True
@@ -296,13 +295,16 @@ class Slime(pygame.sprite.Sprite):
         self.onGround = False
         self.onWall = False
         self.orientation = 'Right'
-
+        
         self.hp = 100
 
 
-        self.velocityX = 1
-        self.velocityY = 1
+        self.velocityX = 0
+        self.velocityY = 0
 
+
+        self.is_attack = 0
+        self.run_to = False
 
         self.sheet = sheet
         self.frames = []
@@ -331,7 +333,6 @@ class Slime(pygame.sprite.Sprite):
                 image = sheet.subsurface(pygame.Rect(frame_location, self.rect.size))
                 image.set_colorkey(image.get_at((0, 0)))
                 self.frames.append(image)
-
         self.idle_frames = self.frames[:9]
         self.attack_frames = self.frames[8:14]
         self.die_frames = self.frames[16:21]
@@ -340,28 +341,17 @@ class Slime(pygame.sprite.Sprite):
     def update(self):
             #self.checkCollision(old)
         # Физика для slime
+        self.move_horizontal()
+        self.move_vertical()
+        if self.is_attack:
+            hero.hp -= 2 / FPS
         if not self.onGround:
             self.rect.y += self.velocityY        
-            
         if self.hp <= 0 and not self.cur_state == self.die_frames:
             self.cur_state = self.die_frames 
             self.cur_pos = 0
             self.kill()
-        if self.rect.x - hero.rect.x:
-            if self.orientation == 'Left':
-                if abs((self.rect.x + self.rect.w) - hero.rect.x) in range(0, 51):
-                    self.is_attack = True
-                    self.is_pursuit = False
-                elif abs((self.rect.x + self.rect.w) - hero.rect.x) in range(51, 301):
-                    self.is_attack = False
-                    self.is_pursuit = True
-            else:
-                if abs(self.rect.x - (hero.rect.x + hero.rect.y)) in range(0, 51):
-                    self.is_attack = True
-                    self.is_pursuit = False
-                elif abs(self.rect.x - (hero.rect.x + hero.rect.w)) in range(51, 301):
-                    self.is_attack = False
-                    self.is_pursuit = True
+        self.checkState(hero)
         self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
         image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
         image.set_colorkey(image.get_at((0, 0)))
@@ -371,24 +361,17 @@ class Slime(pygame.sprite.Sprite):
         self.rect.w, self.rect.h = image.get_size()
         old_pos = self.rect.x, self.rect.y
         self.checkCollision((old_pos))
-        enemy = pygame.sprite.spritecollideany(self, heros)
-        if enemy:
-            if not self.cur_state == self.attack_frames:
-                self.cur_state = self.attack_frames
-                self.cur_pos = 0
-            if enemy.rect.x > self.rect.x:
-                self.orientation = 'Right'
-            else:
-                self.orientation = 'Left'
-        else:
-            self.cur_state = self.idle_frames
-            
-        
-            
         if self.cur_pos == len(self.cur_state) - 1 and self.cur_state == self.die_frames:
             self.kill()
+        if self.run_to:
+    
+            if self.orientation == 'Left':
+                self.velocityX = -2
+            else:
+                self.velocityX = 2
+        if self.is_attack:
+            self.velocityX = 0
         pygame.draw.rect(screen, (255, 0, 0), self.rect, width=2)
-        
 
     def checkCollision(self, old):
         self.colliders = pygame.sprite.spritecollide(self, borders, False)
@@ -396,7 +379,7 @@ class Slime(pygame.sprite.Sprite):
             if self.rect.y + self.rect.height in range(collider.rect.y + collider.rect.h)\
                 and self.rect.x + self.rect.w // 2 in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onGround = True        
-                self.rect.y = collider.rect.y - self.image.get_height()
+                self.rect.y = collider.rect.y - self.rect.h - 1
             elif self.rect.x + self.rect.w in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onWall = True  
                 self.rect.x = old[0]
@@ -404,6 +387,43 @@ class Slime(pygame.sprite.Sprite):
                 self.onGround = False
                 self.rect.x, self.rect.y = old
 
+    
+    def move_horizontal(self):
+        self.rect.x += self.velocityX
+
+    def move_vertical(self):
+        self.rect.y += self.velocityY
+
+
+    def checkState(self, hero):
+        if pygame.sprite.spritecollideany(self, heros):
+            self.clearFlags()
+            self.is_attack = True
+            if not self.cur_state == self.attack_frames:
+                self.cur_state = self.attack_frames
+                self.cur_pos = 0
+            if self.rect.x > hero.rect.x:
+                self.orientation = 'Left'
+            else:
+                self.orientation = 'Right'
+            return
+
+        elif self.rect.x - hero.rect.x in range(-50, 51):
+            self.clearFlags()
+            if self.rect.x - hero.rect.x in range(-50, 0):
+                self.orientation = 'Right'
+            if self.rect.x - hero.rect.x in range(0, 51):
+                self.orientation = 'Left' 
+            self.run_to = 1
+            return
+        self.clearFlags()
+        self.velocityX = 0
+        self.cur_state = self.idle_frames
+
+
+    def clearFlags(self):
+        self.is_pursuit = False
+        self.is_attack = False
 
     def get_damage(self, damage):
         self.hp -= damage 
@@ -464,8 +484,9 @@ if __name__ == '__main__':
                         hero.move_vertical()
                         hero.onGround = False
                 elif event.key == pygame.K_SPACE:
-                    hero.velocityY = -100
-                    hero.is_jump = True
+                    if hero.onGround: 
+                        hero.velocityY = -100
+                        hero.is_jump = True
                 elif event.key == pygame.K_LEFT:
                     if not hero.onWall:
                         directionToLeft = True
@@ -485,7 +506,6 @@ if __name__ == '__main__':
                     hero.w = 30
                     hero.non_change = True
                     hero.image = pygame.Surface((hero.rect.w, hero.rect.h), masks=(255, 0, 0))
-                    print("DF")
                     pygame.display.flip()
                 elif event.key == pygame.K_CAPSLOCK:
                     hero.is_animated = True
