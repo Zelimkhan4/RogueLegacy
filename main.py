@@ -297,10 +297,6 @@ class Slime(pygame.sprite.Sprite):
         self.onWall = False
         self.orientation = 'Right'
 
-        self.is_pursuit = False
-        self.is_attack = False
-
-
         self.hp = 100
 
 
@@ -345,13 +341,27 @@ class Slime(pygame.sprite.Sprite):
             #self.checkCollision(old)
         # Физика для slime
         if not self.onGround:
-            self.rect.y += self.velocityY   
-        
+            self.rect.y += self.velocityY        
             
         if self.hp <= 0 and not self.cur_state == self.die_frames:
             self.cur_state = self.die_frames 
             self.cur_pos = 0
             self.kill()
+        if self.rect.x - hero.rect.x:
+            if self.orientation == 'Left':
+                if abs((self.rect.x + self.rect.w) - hero.rect.x) in range(0, 51):
+                    self.is_attack = True
+                    self.is_pursuit = False
+                elif abs((self.rect.x + self.rect.w) - hero.rect.x) in range(51, 301):
+                    self.is_attack = False
+                    self.is_pursuit = True
+            else:
+                if abs(self.rect.x - (hero.rect.x + hero.rect.y)) in range(0, 51):
+                    self.is_attack = True
+                    self.is_pursuit = False
+                elif abs(self.rect.x - (hero.rect.x + hero.rect.w)) in range(51, 301):
+                    self.is_attack = False
+                    self.is_pursuit = True
         self.cur_pos = (self.cur_pos + 1) % len(self.cur_state)
         image = pygame.transform.scale(self.cur_state[self.cur_pos], (50, 50))
         image.set_colorkey(image.get_at((0, 0)))
@@ -361,38 +371,39 @@ class Slime(pygame.sprite.Sprite):
         self.rect.w, self.rect.h = image.get_size()
         old_pos = self.rect.x, self.rect.y
         self.checkCollision((old_pos))
-        enemy = pygame.sprite.spritecollideany(self, heros) 
+        enemy = pygame.sprite.spritecollideany(self, heros)
         if enemy:
-            self.orientation = 'Right' if self.rect.x < enemy.rect.x else 'Left'
             if not self.cur_state == self.attack_frames:
                 self.cur_state = self.attack_frames
                 self.cur_pos = 0
-            if self.cur_pos == len(self.cur_state) - 1:
-                hero.hp -= 2
+            if enemy.rect.x > self.rect.x:
+                self.orientation = 'Right'
+            else:
+                self.orientation = 'Left'
         else:
             self.cur_state = self.idle_frames
+            
         
             
         if self.cur_pos == len(self.cur_state) - 1 and self.cur_state == self.die_frames:
             self.kill()
-        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(self.rect.x, self.rect.y, self.rect.w, self.rect.h), 2)
+        pygame.draw.rect(screen, (255, 0, 0), self.rect, width=2)
         
 
     def checkCollision(self, old):
         self.colliders = pygame.sprite.spritecollide(self, borders, False)
         for collider in self.colliders:
-            if self.rect.y + self.rect.height in range(collider.rect.y, collider.rect.y + collider.rect.h + 1)\
+            if self.rect.y + self.rect.height in range(collider.rect.y + collider.rect.h)\
                 and self.rect.x + self.rect.w // 2 in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onGround = True        
-                self.rect.y = collider.rect.y - self.rect.h
+                self.rect.y = collider.rect.y - self.image.get_height()
             elif self.rect.x + self.rect.w in range(collider.rect.x, collider.rect.x + collider.rect.w):
                 self.onWall = True  
                 self.rect.x = old[0]
             else:
                 self.onGround = False
                 self.rect.x, self.rect.y = old
-        if self.colliders:
-            print(len(self.colliders), end='\n\n')
+
 
     def get_damage(self, damage):
         self.hp -= damage 
